@@ -1,0 +1,568 @@
+# configs/sources.yaml
+# Cấu hình nguồn dữ liệu và danh sách công ty thu thập BCTN / BCTC
+# Tuân thủ quy tắc trong CLAUDE.md & README.md
+#
+# QUAN TRỌNG trước khi crawl:
+#   1. Điền email thật vào user_agent (thay <EMAIL_CUA_BAN>).
+#   2. Mở trình duyệt kiểm tra từng ir_url, đặt ir_url_verified: true khi xác nhận URL hợp lệ.
+
+# ---------------------------------------------------------------------------
+# Cài đặt crawler
+# ---------------------------------------------------------------------------
+crawler_settings:
+  user_agent: "ViFinRAG/1.0 (Academic Research; contact: nhan.nd235182@sis.hust.edu.vn)"
+  request_delay_seconds: 1.5      # Giới hạn 1-2 giây mỗi request mỗi domain
+  timeout_seconds: 30
+  max_retries: 3
+  backoff_factor: 2.0
+  max_concurrent: 1               # Số domain tải song song; giữ ở 1 khi chưa kiểm tra kỹ
+  respect_robots: true            # Tự động đọc robots.txt và tuân thủ Disallow
+  download_dir: "data/raw/pdf"
+  metadata_path: "data/metadata.csv"
+  crawl_log_path: "data/crawl_log.csv"
+
+# ---------------------------------------------------------------------------
+# Tài liệu mục tiêu
+# ---------------------------------------------------------------------------
+target_document_types:
+  - BCTN   # Báo cáo thường niên (Annual Report)
+  - BCTC   # Báo cáo tài chính đã kiểm toán năm (Audited Financial Statements)
+
+# Cập nhật: 2023-2025 (hiện là 10/2026, BCTN 2025 nhiều công ty đã công bố)
+# Trước khi crawl năm 2025, xác nhận báo cáo thực sự đã có trên trang nguồn
+target_years:
+  - 2023
+  - 2024
+  - 2025
+
+# ---------------------------------------------------------------------------
+# Danh sách ngành chuẩn (12 giá trị cố định - KHÔNG thêm giá trị ngoài danh sách này)
+# Dùng đúng nhãn này cho trường `industry` của từng công ty để lấy mẫu phân tầng sau này
+# ---------------------------------------------------------------------------
+industry_taxonomy:
+  - "Ngân hàng"
+  - "Bảo hiểm"
+  - "Chứng khoán"
+  - "Công nghệ thông tin"
+  - "Bán lẻ & Tiêu dùng"
+  - "Thực phẩm & Đồ uống"
+  - "Thép & Kim loại"
+  - "Hóa chất & Phân bón"
+  - "Bất động sản"
+  - "Năng lượng & Dầu khí"
+  - "Logistics & Cảng biển"
+  - "Dược phẩm & Y tế"
+  - "Thủy sản"
+  - "Dệt may & May mặc"
+  - "Vật liệu xây dựng"
+  - "Hàng không & Vận tải"
+
+# ---------------------------------------------------------------------------
+# Nguồn trung gian / tổng hợp (kiểm tra trước khi dùng làm nguồn tải)
+# ---------------------------------------------------------------------------
+aggregated_sources:
+  hose:
+    name: "Sở Giao dịch Chứng khoán TP.HCM (HOSE)"
+    base_url: "https://www.hsx.vn"
+    notes: ""
+  hnx:
+    name: "Sở Giao dịch Chứng khoán Hà Nội (HNX)"
+    base_url: "https://hnx.vn"
+    notes: ""
+  cafef:
+    name: "CafeF"
+    base_url: "https://cafef.vn"
+    notes: ""
+  vietstock:
+    name: "Vietstock"
+    base_url: "https://vietstock.vn"
+    notes: ""
+
+# ---------------------------------------------------------------------------
+# Danh sách công ty (~40 công ty, đa ngành, cả HOSE và HNX)
+#
+# Lưu ý quan trọng:
+#   - ir_url: Lấy từ bộ nhớ mô hình, CHƯA xác minh. Bắt buộc kiểm tra tay trước khi crawl.
+#   - ir_url_verified: Đặt true sau khi bạn mở trình duyệt xác nhận URL đúng và có PDF.
+#   - batch: 1 = chạy thử nghiệm đợt đầu (5-10 công ty), 2 = mở rộng đợt 2
+#   - status: "pending" | "verified" | "skip"
+#   - priority_source: "ir" | "hose" | "hnx" | "cafef" (nguồn ưu tiên tải trước)
+# ---------------------------------------------------------------------------
+companies:
+
+  # -----------------------------------------------------------------------
+  # NGÂN HÀNG (4 công ty - HOSE)
+  # -----------------------------------------------------------------------
+  - ticker: "VCB"
+    name: "Ngân hàng TMCP Ngoại thương Việt Nam (Vietcombank)"
+    industry: "Ngân hàng"
+    exchange: "HOSE"
+    batch: 1
+    status: "verified" 
+    priority_source: "ir"
+    ir_url: "https://www.vietcombank.com.vn/vi-VN/Nha-dau-tu/Chi-tiet-nha-dau-tu#investmentdocumentchip=B%C3%A1o%20c%C3%A1o%20%C4%91%E1%BB%8Bnh%20k%E1%BB%B3&investmentdocumentyear=N%C4%83m%202023&investmentdocumentmenu=B%C3%A1o%20c%C3%A1o%20Th%C6%B0%E1%BB%9Dng%20ni%C3%AAn"
+    ir_url_verified: true
+    notes: ""
+
+  - ticker: "TCB"
+    name: "Ngân hàng TMCP Kỹ thương Việt Nam (Techcombank)"
+    industry: "Ngân hàng"
+    exchange: "HOSE"
+    batch: 1
+    status: "verified"
+    priority_source: "ir"
+    ir_url: "https://techcombank.com/nha-dau-tu/bao-cao-thuong-nien"
+    ir_url_verified: true
+    notes: ""
+
+  - ticker: "MBB"
+    name: "Ngân hàng TMCP Quân đội (MB Bank)"
+    industry: "Ngân hàng"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://www.mbbank.com.vn/investor"
+    ir_url_verified: false
+    notes: ""
+
+  - ticker: "ACB"
+    name: "Ngân hàng TMCP Á Châu"
+    industry: "Ngân hàng"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://acb.com.vn/quan-he-nha-dau-tu"
+    ir_url_verified: false
+    notes: ""
+
+  # -----------------------------------------------------------------------
+  # BẢO HIỂM (2 công ty - HOSE)
+  # -----------------------------------------------------------------------
+  - ticker: "BVH"
+    name: "Tập đoàn Bảo Việt"
+    industry: "Bảo hiểm"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://www.baoviet.com.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: ""
+
+  - ticker: "PVI"
+    name: "Tổng Công ty CP Bảo hiểm PVI"
+    industry: "Bảo hiểm"
+    exchange: "HNX"
+    batch: 2
+    status: "pending"
+    priority_source: "hnx"
+    ir_url: "https://www.pvi.com.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: "Niêm yết HNX"
+
+  # -----------------------------------------------------------------------
+  # CHỨNG KHOÁN (2 công ty)
+  # -----------------------------------------------------------------------
+  - ticker: "SSI"
+    name: "Công ty Cổ phần Chứng khoán SSI"
+    industry: "Chứng khoán"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://www.ssi.com.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: ""
+
+  - ticker: "VND"
+    name: "Công ty Cổ phần Chứng khoán VNDirect"
+    industry: "Chứng khoán"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://www.vndirect.com.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: ""
+
+  # -----------------------------------------------------------------------
+  # CÔNG NGHỆ THÔNG TIN (2 công ty - HOSE)
+  # -----------------------------------------------------------------------
+  - ticker: "FPT"
+    name: "Công ty Cổ phần FPT"
+    industry: "Công nghệ thông tin"
+    exchange: "HOSE"
+    batch: 1
+    status: "verified"
+    priority_source: "ir"
+    ir_url: "https://fpt.com/vi/nha-dau-tu/bao-cao-thuong-nien"
+    ir_url_verified: true
+    notes: ""
+
+  - ticker: "CMG"
+    name: "Tập đoàn Công nghệ CMC"
+    industry: "Công nghệ thông tin"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://cmc.com.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: ""
+
+  # -----------------------------------------------------------------------
+  # BÁN LẺ & TIÊU DÙNG (3 công ty - HOSE)
+  # -----------------------------------------------------------------------
+  - ticker: "MWG"
+    name: "Công ty Cổ phần Đầu tư Thế Giới Di Động"
+    industry: "Bán lẻ & Tiêu dùng"
+    exchange: "HOSE"
+    batch: 1
+    status: "verified"
+    priority_source: "ir"
+    ir_url: "https://mwg.vn/bao-cao"
+    ir_url_verified: true
+    notes: ""
+
+  - ticker: "PNJ"
+    name: "Công ty Cổ phần Vàng bạc Đá quý Phú Nhuận"
+    industry: "Bán lẻ & Tiêu dùng"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://ir.pnj.com.vn"
+    ir_url_verified: false
+    notes: ""
+
+  - ticker: "FRT"
+    name: "Công ty Cổ phần Bán lẻ Kỹ thuật số FPT"
+    industry: "Bán lẻ & Tiêu dùng"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://fptshop.com.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: ""
+
+  # -----------------------------------------------------------------------
+  # THỰC PHẨM & ĐỒ UỐNG (3 công ty)
+  # -----------------------------------------------------------------------
+  - ticker: "VNM"
+    name: "Công ty Cổ phần Sữa Việt Nam (Vinamilk)"
+    industry: "Thực phẩm & Đồ uống"
+    exchange: "HOSE"
+    batch: 1
+    status: "verified"
+    priority_source: "ir"
+    ir_url: "https://www.vinamilk.com.vn/investor/reports/annual"
+    ir_url_verified: true
+    notes: ""
+
+  - ticker: "MSN"
+    name: "Công ty Cổ phần Tập đoàn Masan"
+    industry: "Thực phẩm & Đồ uống"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://www.masangroup.com/vi/investor-relations"
+    ir_url_verified: false
+    notes: ""
+
+  - ticker: "SAB"
+    name: "Tổng Công ty Cổ phần Bia - Rượu - NGK Sài Gòn (Sabeco)"
+    industry: "Thực phẩm & Đồ uống"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://www.sabeco.com.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: ""
+
+  # -----------------------------------------------------------------------
+  # THÉP & KIM LOẠI (2 công ty)
+  # -----------------------------------------------------------------------
+  - ticker: "HPG"
+    name: "Công ty Cổ phần Tập đoàn Hòa Phát"
+    industry: "Thép & Kim loại"
+    exchange: "HOSE"
+    batch: 1
+    status: "verified"
+    priority_source: "ir"
+    ir_url: "https://www.hoaphat.com.vn/quan-he-co-dong/bao-cao-thuong-nien"
+    ir_url_verified: true
+    notes: ""
+
+  - ticker: "NKG"
+    name: "Công ty Cổ phần Thép Nam Kim"
+    industry: "Thép & Kim loại"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://namkimgroup.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: ""
+
+  # -----------------------------------------------------------------------
+  # HÓA CHẤT & PHÂN BÓN (2 công ty)
+  # -----------------------------------------------------------------------
+  - ticker: "DGC"
+    name: "Công ty Cổ phần Tập đoàn Hóa chất Đức Giang"
+    industry: "Hóa chất & Phân bón"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://ducgiangchem.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: ""
+
+  - ticker: "DCM"
+    name: "Công ty Cổ phần Phân bón Dầu khí Cà Mau"
+    industry: "Hóa chất & Phân bón"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://pvcfc.com.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: ""
+
+  # -----------------------------------------------------------------------
+  # BẤT ĐỘNG SẢN (3 công ty - HOSE)
+  # -----------------------------------------------------------------------
+  - ticker: "VHM"
+    name: "Công ty Cổ phần Vinhomes"
+    industry: "Bất động sản"
+    exchange: "HOSE"
+    batch: 1
+    status: "verified"
+    priority_source: "ir"
+    ir_url: "https://vinhomes.vn/vi/bao-cao-thuong-nien"
+    ir_url_verified: true
+    notes: ""
+
+  - ticker: "KDH"
+    name: "Công ty Cổ phần Đầu tư và Kinh doanh Nhà Khang Điền"
+    industry: "Bất động sản"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://khangdien.com.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: ""
+
+  - ticker: "NLG"
+    name: "Công ty Cổ phần Đầu tư Nam Long"
+    industry: "Bất động sản"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://namlonggroup.com/quan-he-co-dong"
+    ir_url_verified: false
+    notes: ""
+
+  # -----------------------------------------------------------------------
+  # NĂNG LƯỢNG & DẦU KHÍ (3 công ty - HOSE)
+  # -----------------------------------------------------------------------
+  - ticker: "GAS"
+    name: "Tổng Công ty Khí Việt Nam (PV Gas)"
+    industry: "Năng lượng & Dầu khí"
+    exchange: "HOSE"
+    batch: 1
+    status: "verified"
+    priority_source: "ir"
+    ir_url: "https://www.pvgas.com.vn/quan-he-co-%C4%91ong/category/bao-cao-thuong-nien"
+    ir_url_verified: true
+    notes: ""
+
+  - ticker: "REE"
+    name: "Công ty Cổ phần Cơ Điện Lạnh (REE Corporation)"
+    industry: "Năng lượng & Dầu khí"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://reecorp.com/quan-he-nha-dau-tu"
+    ir_url_verified: false
+    notes: ""
+
+  - ticker: "POW"
+    name: "Tổng Công ty Điện lực Dầu khí Việt Nam (PV Power)"
+    industry: "Năng lượng & Dầu khí"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://pvpower.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: ""
+
+  # -----------------------------------------------------------------------
+  # LOGISTICS & CẢNG BIỂN (3 công ty)
+  # -----------------------------------------------------------------------
+  - ticker: "GMD"
+    name: "Công ty Cổ phần Gemadept"
+    industry: "Logistics & Cảng biển"
+    exchange: "HOSE"
+    batch: 1
+    status: "verified"
+    priority_source: "ir"
+    ir_url: "https://www.gemadept.com.vn/co-dong/bao-cao-thuong-nien/"
+    ir_url_verified: true
+    notes: ""
+
+  - ticker: "PHP"
+    name: "Công ty Cổ phần Cảng Hải Phòng"
+    industry: "Logistics & Cảng biển"
+    exchange: "HNX"
+    batch: 2
+    status: "pending"
+    priority_source: "hnx"
+    ir_url: "https://www.caiphaiphone.com.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: "Niêm yết HNX"
+
+  - ticker: "DVP"
+    name: "Công ty Cổ phần Đầu tư và Phát triển Cảng Đình Vũ"
+    industry: "Logistics & Cảng biển"
+    exchange: "HNX"
+    batch: 2
+    status: "pending"
+    priority_source: "hnx"
+    ir_url: "https://dinvuport.com.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: "Niêm yết HNX"
+
+  # -----------------------------------------------------------------------
+  # DƯỢC PHẨM & Y TẾ (2 công ty)
+  # -----------------------------------------------------------------------
+  - ticker: "DHG"
+    name: "Công ty Cổ phần Dược Hậu Giang"
+    industry: "Dược phẩm & Y tế"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://www.dhgpharma.com.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: ""
+
+  - ticker: "IMP"
+    name: "Công ty Cổ phần Dược phẩm Imexpharm"
+    industry: "Dược phẩm & Y tế"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://imexpharm.com/quan-he-co-dong"
+    ir_url_verified: false
+    notes: ""
+
+  # -----------------------------------------------------------------------
+  # THỦY SẢN (2 công ty - HNX/HOSE)
+  # -----------------------------------------------------------------------
+  - ticker: "VHC"
+    name: "Công ty Cổ phần Vĩnh Hoàn"
+    industry: "Thủy sản"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://vinhoan.com.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: ""
+
+  - ticker: "ANV"
+    name: "Công ty Cổ phần Nam Việt"
+    industry: "Thủy sản"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://namviet.com.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: ""
+
+  # -----------------------------------------------------------------------
+  # DỆT MAY & MAY MẶC (2 công ty - HNX)
+  # -----------------------------------------------------------------------
+  - ticker: "VGT"
+    name: "Tập đoàn Dệt May Việt Nam (Vinatex)"
+    industry: "Dệt may & May mặc"
+    exchange: "HNX"
+    batch: 2
+    status: "pending"
+    priority_source: "hnx"
+    ir_url: "https://vinatex.com.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: "Niêm yết HNX"
+
+  - ticker: "TCM"
+    name: "Công ty Cổ phần Dệt may - Đầu tư - Thương mại Thành Công"
+    industry: "Dệt may & May mặc"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://thanhcong.com.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: ""
+
+  # -----------------------------------------------------------------------
+  # VẬT LIỆU XÂY DỰNG (2 công ty)
+  # -----------------------------------------------------------------------
+  - ticker: "BMP"
+    name: "Công ty Cổ phần Nhựa Bình Minh"
+    industry: "Vật liệu xây dựng"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://binhminh.com.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: ""
+
+  - ticker: "HT1"
+    name: "Công ty Cổ phần Xi măng Hà Tiên 1"
+    industry: "Vật liệu xây dựng"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://hatienciment.com.vn/quan-he-co-dong"
+    ir_url_verified: false
+    notes: ""
+
+  # -----------------------------------------------------------------------
+  # HÀNG KHÔNG & VẬN TẢI (2 công ty - HOSE)
+  # -----------------------------------------------------------------------
+  - ticker: "VJC"
+    name: "Công ty Cổ phần Hàng không Vietjet"
+    industry: "Hàng không & Vận tải"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://ir.vietjetair.com"
+    ir_url_verified: false
+    notes: ""
+
+  - ticker: "HVN"
+    name: "Tổng Công ty Hàng không Việt Nam (Vietnam Airlines)"
+    industry: "Hàng không & Vận tải"
+    exchange: "HOSE"
+    batch: 2
+    status: "pending"
+    priority_source: "ir"
+    ir_url: "https://www.vietnamairlines.com/vn/vi/about-us/investor-relations"
+    ir_url_verified: false
+    notes: ""
