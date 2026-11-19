@@ -4,35 +4,34 @@ Tệp này cho Claude biết dự án là gì, đang ở đâu và làm việc t
 
 ## Dự án
 
-Đồ án tốt nghiệp đại học: hệ thống hỏi đáp RAG đa phương thức trên **báo cáo tài chính / thường niên tiếng Việt** (PDF có bảng, biểu đồ, hình). Đóng góp chính: benchmark hỏi đáp tiếng Việt và so sánh 3 pipeline (parse-then-retrieve, vision-native ColPali/ColQwen, hybrid + router).
+Đồ án tốt nghiệp đại học (đề cương: `Project 3_Nguyễn Đức Nhẫn.pdf`): **xây dựng và đánh giá** hệ thống hỏi đáp RAG đa phương thức trên **báo cáo tài chính / thường niên tiếng Việt** (PDF có bảng, biểu đồ, hình). Bốn mục tiêu: (1) benchmark hỏi đáp tiếng Việt; (2) cài đặt và so sánh 3 pipeline (text-centric, vision-native ColPali/ColQwen, hybrid + router); (3) đánh giá truy xuất, câu trả lời, độ chính xác trích dẫn, chi phí; (4) demo hiển thị trang nguồn.
 
 - Người dùng là sinh viên, nói tiếng Việt. **Trả lời bằng tiếng Việt**, ngắn gọn, đi thẳng vào việc. Tên biến, tên hàm, comment trong code dùng tiếng Anh.
-- Có GPU cá nhân (VRAM chưa ghi; hỏi lại nếu cần quyết định kích thước model).
+- Phần cứng: chạy trên **server khoảng 10 GB VRAM trống**. Model lớn chạy tuần tự theo pha, VLM 7B dùng 4-bit (xem [004](docs/decisions/004-chien-luoc-tinh-toan-gpu-4gb.md)). Máy cá nhân RTX 2050 4 GB chỉ để soạn code.
+- Model bố cục: **D-FINE X** do người dùng fine-tune, ở HF [`ducnhan0804/dfine-x-obj-detection`](https://huggingface.co/ducnhan0804/dfine-x-obj-detection) (`best_stg2.pth`; lớp 1 Figure, 2 Icon, 3 Table, bỏ lớp 0; repo train `d:\Project\D-FINE`, dataset 676 ảnh). Tích hợp theo [003](docs/decisions/003-tich-hop-dfine-x-vao-pipeline-1.md): export **ONNX** rồi chạy bằng onnxruntime; **không** import wrapper HF vào dự án (xung đột tên package `src`). D-FINE chỉ phát hiện **vùng**, nội dung lấy từ text layer PDF; tiền xử lý không Normalize.
 
 ## Giai đoạn hiện tại
 
-**Thu thập dữ liệu (crawl).** Mục tiêu: 100-300 PDF báo cáo tài chính/thường niên của 30-60 công ty niêm yết Việt Nam, đa ngành, 2-3 năm gần nhất, ưu tiên PDF có text layer.
+**Giai đoạn 2 (ROADMAP): thu thập dữ liệu, parse bố cục bằng D-FINE X, pipeline 1.** Chi tiết các bước 2.0–2.6 ở `docs/ROADMAP.md`. Trạng thái thực tế ở `docs/STATUS.md`.
 
-Việc cần làm, theo thứ tự:
+Tóm tắt thứ tự:
 
-1. Tạo khung dự án: cấu trúc thư mục như trong `README.md`, `requirements.txt`, `.gitignore` (bỏ `data/`, `.venv/`, file model/checkpoint).
-2. Viết `configs/sources.yaml`: danh sách công ty (mã CK, tên, ngành) và nguồn cho từng công ty.
-3. Với **từng nguồn**: đọc `robots.txt` và điều khoản sử dụng, kiểm tra cấu trúc trang thực tế, rồi mới viết crawler trong `src/crawl/`. Báo cho người dùng nếu một nguồn cấm crawl hoặc cần đăng nhập, không tự tìm cách lách.
-4. Chạy crawl thử trên 5-10 công ty trước khi chạy toàn bộ.
-5. Sau khi tải: kiểm tra file hợp lệ, đếm trang, kiểm tra text layer, tính `sha256`, ghi `data/metadata.csv` và `data/crawl_log.csv`.
-6. Tiền xử lý: tách PDF thành ảnh từng trang (DPI 150-200) và text thô theo trang, mã trang `<doc_id>_p<số trang>`.
+1. Khung dự án, `configs/sources.yaml`, `src/crawl/ingest.py`, `src/preprocess/extract_pages.py`: *đã xong*.
+2. Thu thập (song song, liên tục): người dùng tải BCTN về `data/raw/pdf/` (tên `<MA_CK>_BCTN_<nam>.pdf`), chạy `python -m src.crawl.ingest`. Cần ≥ 100 PDF trước khi sang GĐ 4. Theo [002](docs/decisions/002-chuyen-sang-thu-thap-du-lieu-thu-cong.md).
+3. Làm bù GĐ 1: 20 câu hỏi mẫu, baseline P1-v0, ghi chú paper.
+4. D-FINE X: export ONNX từ checkpoint HF → kiểm tra tương đương torch/ONNX → `src/layout/detect.py` → `data/layout/`; đánh giá mAP trên tập test.
+5. Trích element theo vùng (`src/parse/`) → `data/parsed/*.jsonl`; caption biểu đồ bằng VLM.
+6. Chunk + index (BM25 + bge-m3) + truy xuất RRF + rerank + sinh có trích dẫn.
 
-Tiêu chí xong của giai đoạn này nằm ở mục "Tiêu chí hoàn thành bước thu thập" trong `README.md`.
+Tiêu chí xong: mục "Xong khi" của Giai đoạn 2 trong `docs/ROADMAP.md` và mục "Tiêu chí hoàn thành bước thu thập" trong `README.md`.
 
-## Quy tắc khi crawl
+## Quy tắc thu thập và quản lý tài liệu
 
-- Chỉ tải tài liệu **công bố công khai**. Tôn trọng `robots.txt` và điều khoản sử dụng. Không vượt đăng nhập, paywall, CAPTCHA.
-- Giới hạn tốc độ (khoảng 1-2 giây mỗi request mỗi domain), đặt User-Agent rõ ràng, retry có backoff, tải song song ở mức thấp.
-- Idempotent: chạy lại không tải trùng; bỏ qua file đã có, phát hiện trùng bằng `sha256`.
-- Mọi kết quả (thành công, lỗi, lý do) ghi vào `data/crawl_log.csv`.
-- Không hard-code danh sách công ty hay URL trong code; đưa vào `configs/sources.yaml`.
+- Chỉ thu thập tài liệu **công bố công khai** của doanh nghiệp niêm yết (theo Thông tư 96/2020/TT-BTC).
+- Ưu tiên tối đa **Báo cáo thường niên (BCTN)** toàn văn dạng Digital PDF (vector text layer, ảnh biểu đồ, infographic sắc nét) để phục vụ bài toán RAG đa phương thức và Vision-native (ColPali). Tránh lấy nhầm thông báo ngắn (1-2 trang) hoặc bản scan mờ.
+- Quy ước tên file chuẩn bắt buộc: `<MA_CK>_BCTN_<nam>.pdf` (ví dụ: `VNM_BCTN_2024.pdf`, `FPT_BCTN_2025.pdf`).
 - Không commit dữ liệu (`data/`) lên Git. Chỉ commit code, cấu hình, danh sách nguồn.
-- Quy ước tên file: `<MA_CK>_<loai>_<nam>.pdf`, `loai` là `BCTN` hoặc `BCTC`.
+- Mọi tài liệu đưa vào kho phải được xác thực qua script `ingest.py` để ghi nhận đầy đủ vào `data/metadata.csv`.
 
 ## Quy ước mã nguồn
 
@@ -83,7 +82,8 @@ docs/
 - Không tạo, sửa, hay chạy bất kỳ thứ gì trên **tập test** của benchmark (sẽ có ở giai đoạn 4); tập test chỉ chạy ở giai đoạn 6.
 - Không bịa số liệu, kết quả thí nghiệm, hay metadata của tài liệu. Không biết thì để trống hoặc hỏi.
 - Không xóa hoặc ghi đè dữ liệu gốc trong `data/raw/` khi chưa hỏi.
-- Không chạy lệnh tốn tài nguyên lớn (tải model hàng chục GB, embed toàn bộ kho) khi chưa báo trước ước lượng.
+- Không chạy lệnh tốn tài nguyên lớn (tải model hàng chục GB, embed toàn bộ kho, chạy D-FINE/VLM toàn kho) khi chưa báo trước ước lượng.
+- Không ghi vào docs hay báo cáo những thành tích chưa có bằng chứng (ví dụ mAP của D-FINE khi chưa có log, số ngành/số tài liệu khác với `metadata.csv`).
 
 ## Cách làm việc với người dùng
 
@@ -105,7 +105,7 @@ Quy tắc:
 Tóm tắt các giai đoạn (chi tiết ở ROADMAP):
 
 1. Tuần 1-2: phạm vi, đọc paper, baseline RAG văn bản.
-2. Tuần 3-5: thu thập dữ liệu, parse, pipeline 1 (giai đoạn 2 trong ROADMAP, giai đoạn hiện tại).
+2. Tuần 3-5: thu thập dữ liệu, parse bố cục (D-FINE X), pipeline 1 (giai đoạn hiện tại).
 3. Tuần 6-8: pipeline 2 vision-native (ColPali/ColQwen), kiểm chứng trên ViDoRe.
 4. Tuần 9-11: benchmark tiếng Việt, khóa tập test.
 5. Tuần 12-14: cải tiến (finetune/router/nén index), pipeline 3, chỉ chạy trên tập dev.

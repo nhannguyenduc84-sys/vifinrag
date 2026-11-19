@@ -1,0 +1,266 @@
+\documentclass[a4paper,12pt]{article}
+
+% ---------------------------------------------------------------------------
+% Gói ngôn ngữ & font tiếng Việt (Tương thích tốt với pdfLaTeX và XeLaTeX)
+% ---------------------------------------------------------------------------
+\usepackage[utf8]{inputenc}
+\usepackage[vietnamese]{babel}
+\usepackage[T5]{fontenc}
+\usepackage{lmodern}
+
+% ---------------------------------------------------------------------------
+% Căn lề & Trình bày trang
+% ---------------------------------------------------------------------------
+\usepackage[top=2.5cm, bottom=2.5cm, left=3.0cm, right=2.0cm]{geometry}
+\usepackage{indentfirst}
+\setlength{\parindent}{0.6cm}
+\setlength{\parskip}{4pt}
+\linespread{1.2}
+
+% ---------------------------------------------------------------------------
+% Bảng biểu, Đồ họa, Màu sắc, Khung hộp
+% ---------------------------------------------------------------------------
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage[most]{tcolorbox}
+\usepackage{fancyhdr}
+
+% Thiết lập liên kết
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    urlcolor=blue!70!black,
+    citecolor=blue!70!black
+}
+
+% Định dạng Header & Footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small \textit{Báo cáo tiến độ Đồ án tốt nghiệp đại học}}
+\fancyhead[R]{\small \textit{Dự án ViFinRAG}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% Khung ghi chú nổi bật
+\newtcolorbox{highlightbox}[1][]{
+    colback=blue!5!white,
+    colframe=blue!75!black,
+    fonttitle=\bfseries,
+    coltitle=white,
+    title=#1,
+    arc=2mm,
+    boxrule=0.8pt,
+    left=3mm, right=3mm, top=2mm, bottom=2mm
+}
+
+\begin{document}
+
+% ===========================================================================
+% TRANG TIÊU ĐỀ BÁO CÁO
+% ===========================================================================
+\begin{center}
+    {\large \textbf{ĐẠI HỌC BÁCH KHOA HÀ NỘI}}\\[0.2cm]
+    {\large \textbf{TRƯỜNG CÔNG NGHỆ THÔNG TIN VÀ TRUYỀN THÔNG}}\\[0.8cm]
+    \rule{0.5\textwidth}{1pt}\\[0.8cm]
+    
+    {\Large \textbf{BÁO CÁO TIẾN ĐỘ ĐỒ ÁN TỐT NGHIỆP}}\\[0.4cm]
+    {\large \textbf{GIAI ĐOẠN: THU THẬP DỮ LIỆU, TIỀN XỬ LÝ \& MÔ HÌNH THỊ GIÁC BỐ CỤC}}\\[0.8cm]
+
+    \begin{tcolorbox}[colback=gray!5!white, colframe=gray!60!black, width=\textwidth, arc=2mm]
+        \centering
+        \textbf{ĐỀ TÀI:}\\
+        {\large \textbf{HỆ THỐNG HỎI ĐÁP RAG ĐA PHƯƠNG THỨC CHO BÁO CÁO TÀI CHÍNH TIẾNG VIỆT}}\\
+        \textit{(Multimodal Retrieval-Augmented Generation for Vietnamese Financial Reports: Benchmark and Comparative Study)}
+    \end{tcolorbox}
+\end{center}
+
+\vspace{0.4cm}
+\begin{flushleft}
+    \begin{tabular}{ll}
+        \textbf{Sinh viên thực hiện:} & Nguyễn Đức Nhân \\
+        \textbf{Mã số sinh viên:}     & 20235182 \\
+        \textbf{Chương trình đào tạo:}& Khoa học Máy tính / Công nghệ Thông tin \\
+        \textbf{Giáo viên hướng dẫn:} & [Tên Giảng viên hướng dẫn] \\
+        \textbf{Thời gian báo cáo:}   & Tháng 10/2026 \\
+    \end{tabular}
+\end{flushleft}
+
+\vspace{0.3cm}
+\hrule
+\vspace{0.5cm}
+
+% ===========================================================================
+% NỘI DUNG CHÍNH
+% ===========================================================================
+
+\section{Tổng quan đề tài và Mục tiêu giai đoạn hiện tại}
+
+\subsection{Bài toán nghiên cứu}
+Báo cáo tài chính và Báo cáo thường niên (BCTN) của các doanh nghiệp niêm yết tại Việt Nam là loại tài liệu phức tạp, chứa lượng thông tin đa phương thức khổng lồ: văn bản phân tích, bảng số liệu kế toán nhiều cột, biểu đồ tăng trưởng, sơ đồ cơ cấu cổ đông và các yếu tố đồ họa trực quan (infographic).
+
+Mục tiêu cốt lõi của đồ án là xây dựng hệ thống hỏi đáp thông minh (RAG) và thực hiện nghiên cứu so sánh đối đầu (\textit{comparative study}) giữa 3 hướng tiếp cận:
+\begin{enumerate}[label=\textbf{\arabic*.}]
+    \item \textbf{Pipeline 1 (Parse-then-retrieve):} Phân tích bố cục, trích xuất bảng, đọc biểu đồ qua VLM kết hợp tìm kiếm hỗn hợp văn bản (BM25 + Dense Retriever \texttt{bge-m3}).
+    \item \textbf{Pipeline 2 (Vision-native):} Nhúng trực tiếp ảnh từng trang tài liệu bằng mô hình đa vector thị giác (ColPali / ColQwen) và sinh câu trả lời bằng VLM (Qwen2-VL).
+    \item \textbf{Pipeline 3 (Hybrid + Router):} Định tuyến câu hỏi thông minh theo nhóm thông tin (văn bản thuần, bảng biểu số liệu, biểu đồ hình ảnh).
+\end{enumerate}
+
+\subsection{Mục tiêu trọng tâm của giai đoạn báo cáo}
+\begin{itemize}[noitemsep]
+    \item Hoàn thành xây dựng kho ngữ liệu BCTN chất lượng cao, bao phủ đa ngành nghề trong 3 năm tài chính gần nhất (2023, 2024, 2025).
+    \item Xây dựng pipeline tiền xử lý (\textit{preprocessing}) tự động, chuyển đổi PDF sang các định dạng đa phương thức: ảnh trang (DPI 150), văn bản thô, Markdown có cấu trúc bảng, và JSON lưu tọa độ hình học (Bounding Box).
+    \item Huấn luyện tinh chỉnh (\textit{fine-tune}) mô hình thị giác nhận diện bố cục \textbf{D-FINE (phiên bản X)} chuyên biệt cho việc phát hiện Bảng biểu (\textit{Table}) và Biểu đồ/Hình ảnh (\textit{Image/Chart}) trên báo cáo doanh nghiệp Việt Nam.
+\end{itemize}
+
+---
+
+\section{Kết quả thu thập dữ liệu: Kho tài liệu BCTN 16 ngành kinh tế}
+
+\subsection{Chiến lược lựa chọn Báo cáo thường niên (BCTN)}
+Đồ án quyết định sử dụng **Báo cáo thường niên (BCTN)** làm nguồn dữ liệu cốt lõi (thay vì các bảng báo cáo tài chính scan kế toán đơn thuần) vì các lý do học thuật:
+\begin{itemize}
+    \item BCTN là dạng tài liệu **chuẩn đa phương thức**: chứa phong phú biểu đồ cột, biểu đồ tròn, bảng tóm tắt và infographic.
+    \item Ở các trang cuối của mỗi cuốn BCTN luôn tích hợp đầy đủ toàn văn Báo cáo tài chính kiểm toán hợp nhất.
+    \item Tài liệu được phát hành dạng Digital PDF nguyên gốc từ doanh nghiệp, đảm bảo độ sắc nét cao nhất cho các mô hình thị giác.
+\end{itemize}
+
+\subsection{Mức độ bao phủ dữ liệu (3 năm gần nhất: 2023, 2024, 2025)}
+Dữ liệu đã được thu thập và thẩm định chất lượng toàn văn cho **đầy đủ 16 lĩnh vực kinh tế trọng điểm** trên hai sàn giao dịch chứng khoán HOSE và HNX:
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{Phân bổ kho dữ liệu BCTN theo 16 lĩnh vực kinh tế (Niên độ 2023 -- 2025)}
+    \vspace{0.2cm}
+    \begin{tabularx}{\textwidth}{cllX}
+        \toprule
+        \textbf{STT} & \textbf{Lĩnh vực / Ngành} & \textbf{Doanh nghiệp tiêu biểu} & \textbf{Đặc trưng cấu trúc đa phương thức} \\
+        \midrule
+        1 & Ngân hàng & VCB, TCB, MBB, ACB & Bảng chỉ số tài chính CAMELS, biểu đồ tín dụng, nợ xấu \\
+        2 & Bảo hiểm & BVH, PVI, MIG & Bảng doanh thu phí, biểu đồ bồi thường \\
+        3 & Chứng khoán & SSI, VND, VCI & Bảng danh mục tự doanh, thị phần môi giới \\
+        4 & Công nghệ thông tin & FPT, CMG, ELC & Biểu đồ tăng trưởng doanh thu số, thị trường xuất khẩu \\
+        5 & Bán lẻ, tiêu dùng & MWG, PNJ, DGW & Infographic mạng lưới cửa hàng, doanh thu chuỗi \\
+        6 & Thực phẩm & VNM, MSN, KDC & Sơ đồ chuỗi cung ứng nông nghiệp, thị phần sữa \\
+        7 & Kim loại & HPG, HSG, NKG & Bảng sản lượng thép, biểu đồ giá nguyên liệu \\
+        8 & Hóa chất \& phân bón & DGC, DPM, DCM & Sơ đồ nhà máy hóa chất, công suất dây chuyền \\
+        9 & Bất động sản & VHM, NVL, KDH & Bản đồ quy hoạch dự án, tiến độ bán hàng quỹ đất \\
+        10 & Năng lượng \& dầu khí & GAS, PLX, PVD & Biểu đồ sản lượng khí, cơ cấu doanh thu dầu mỏ \\
+        11 & Logistics & GMD, HAH, VSC & Bản đồ hệ thống cảng biển, sản lượng container TEU \\
+        12 & Dược phẩm \& y tế & DHG, TRA, IMP & Biểu đồ doanh thu kênh ETC/OTC, danh mục thuốc \\
+        13 & Thủy sản & VHC, ANV, FMC & Bảng kim ngạch xuất khẩu cá tra, thị trường tiêu thụ \\
+        14 & Dệt may & MSH, TCM, STK & Biểu đồ cơ cấu xuất khẩu dệt may Mỹ/EU \\
+        15 & Vật liệu xây dựng & VGC, HT1, VCS & Bảng tiêu hao năng lượng, thị phần xi măng/gạch \\
+        16 & Hàng không & VJC, HVN, ACV & Biểu đồ lượng khách luân chuyển (RPK), đội bay \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{highlightbox}[Tóm tắt quy mô dữ liệu thu thập]
+    Kho dữ liệu hiện tại sở hữu hàng chục nghìn trang tài liệu BCTN toàn văn, đảm bảo tính đại diện cao cho toàn bộ nền kinh tế Việt Nam và phục vụ việc xây dựng bộ Benchmark phân tầng (\textit{stratified benchmark}) ở các giai đoạn sau.
+\end{highlightbox}
+
+---
+
+\section{Tiền xử lý đa phương thức và Bóc tách văn bản có cấu trúc}
+
+Nhóm đã xây dựng hoàn chỉnh module tiền xử lý mã nguồn tại \texttt{src/preprocess/extract\_pages.py}. Quá trình tiền xử lý được thực thi tự động, chuyển đổi từng trang PDF sang 4 định dạng dữ liệu đồng bộ:
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tcolorbox}[colback=white, colframe=gray!50!black, width=0.95\textwidth, arc=1mm]
+        \small
+        \textbf{Mỗi trang tài liệu PDF $\longrightarrow$ 4 tệp dữ liệu tương ứng:}
+        \begin{itemize}[noitemsep]
+            \item \texttt{data/pages/<doc\_id>/p<k>.png}: Ảnh trang độ phân giải cao (150 DPI).
+            \item \texttt{data/text/<doc\_id>/p<k>.txt}: Văn bản trần nguyên bản (Plain text).
+            \item \texttt{data/text/<doc\_id>/p<k>.md}: Văn bản Markdown có cấu trúc tiêu đề và bảng.
+            \item \texttt{data/text/<doc\_id>/p<k>.json}: Dữ liệu phân đoạn hình học kèm tọa độ Bounding Box.
+        \end{itemize}
+    \end{tcolorbox}
+\end{figure}
+
+\subsection{Cấu trúc chi tiết của tệp JSON hình học (\texttt{.json})}
+Tệp JSON lưu trữ tọa độ chuẩn hóa $[x_0, y_0, x_1, y_1]$ của từng khối văn bản (\textit{block}) và bảng biểu (\textit{table}):
+\begin{itemize}
+    \item \textbf{Khối văn bản (Blocks):} Lưu trữ tọa độ bounding box, cỡ chữ (\texttt{font\_size}), kiểu chữ in đậm (\texttt{is\_bold}), nội dung chữ và cờ đánh dấu có nằm trong bảng hay không (\texttt{is\_inside\_table}).
+    \item \textbf{Bảng biểu (Tables):} Lưu trữ bounding box bao quanh bảng, số hàng, số cột, ma trận dữ liệu trích xuất và phiên bản định dạng Markdown của bảng.
+    \item \textbf{Ý nghĩa học thuật:} Đóng vai trò là cơ sở để thực hiện **Trích dẫn trực quan (Visual Citation)** -- tự động vẽ khung màu nổi bật lên ảnh trang minh chứng cho câu trả lời của mô hình ngôn ngữ lớn, đồng thời phục vụ thuật toán chia đoạn ngữ nghĩa thông minh (\textit{Smart Semantic Chunking}).
+\end{itemize}
+
+\subsection{Cấu trúc tệp Markdown (\texttt{.md})}
+Tự động ánh xạ các đoạn văn bản có cỡ chữ lớn và in đậm thành tiêu đề cấp độ 2 và cấp độ 3 (\texttt{\#\#}, \texttt{\#\#\#}). Toàn bộ bảng biểu được tái cấu trúc thành bảng GitHub-Flavored Markdown chuẩn (\texttt{| Cột 1 | Cột 2 |}), giúp mô hình ngôn ngữ lớn đọc hiểu số liệu tài chính theo quan hệ hàng -- cột chính xác, không bị xáo trộn vị trí.
+
+---
+
+\section{Điểm nổi bật: Huấn luyện tinh chỉnh (Fine-tuning) Mô hình D-FINE X}
+
+Một đóng góp kỹ thuật trọng tâm trong giai đoạn này là việc huấn luyện tinh chỉnh thành công mô hình nhận diện thị giác bố cục **D-FINE (phiên bản X -- eXtra Large)**.
+
+\subsection{Lý do lựa chọn kiến trúc D-FINE}
+D-FINE (2024) là kiến trúc Object Detection thế hệ mới dựa trên DETR (DEtection TRansformer) đạt hiệu năng SOTA hiện nay, vượt trội hơn YOLOv10 và RT-DETR về cả độ chính xác nhận diện hình học lẫn tốc độ suy luận nhờ cơ chế \textit{Fine-grained Distribution Refinement}.
+
+\subsection{Mục tiêu và Nhiệm vụ Fine-tune}
+Bố cục tài liệu BCTN tiếng Việt thường có mật độ thông tin dày đặc, nhiều bảng biểu phức tạp không có đường kẻ khung (\textit{borderless tables}), và đồ thị lồng ghép trong văn bản. Mô hình D-FINE X được fine-tune để giải quyết 2 bài toán nhận diện then chốt:
+\begin{enumerate}
+    \item \textbf{Phát hiện Bảng số liệu (\texttt{table}):} Nhận diện chính xác tọa độ vùng chứa bảng kế toán và bảng chỉ số tài chính, phân biệt ranh giới giữa bảng và văn bản thường.
+    \item \textbf{Phát hiện Hình ảnh \& Biểu đồ (\texttt{image / chart}):} Định vị chính xác biểu đồ cột, biểu đồ tròn, sơ đồ lưu trình và hình ảnh minh họa.
+\end{enumerate}
+
+\subsection{Vai trò của D-FINE X trong hệ sinh thái RAG}
+\begin{itemize}
+    \item \textbf{Cung cấp đầu vào chất lượng cao cho Pipeline 1:} Thay vì gửi toàn trang ảnh vào VLM (tốn chi phí tính toán và giảm độ phân giải), hệ thống sử dụng tọa độ dự đoán từ D-FINE X để cắt riêng vùng biểu đồ rồi chuyển cho Qwen2-VL đọc số liệu và sinh caption mô tả.
+    \item \textbf{Nâng cao độ chính xác trích xuất bảng:} Hỗ trợ các công cụ bóc tách bảng chuyên sâu (Docling / MinerU) khoanh vùng chính xác ranh giới bảng biểu, loại bỏ văn bản rác xung quanh.
+\end{itemize}
+
+---
+
+\section{Đánh giá tiến độ so với Kế hoạch (Roadmap)}
+
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{Đối chiếu tiến độ triển khai thực tế so với ROADMAP 18 tuần}
+    \vspace{0.2cm}
+    \begin{tabularx}{\textwidth}{p{2.5cm}Xcc}
+        \toprule
+        \textbf{Giai đoạn} & \textbf{Nội dung công việc} & \textbf{Kế hoạch} & \textbf{Trạng thái thực tế} \\
+        \midrule
+        \textbf{Giai đoạn 1} & Khởi tạo dự án, thiết lập môi trường, tài liệu, kiến trúc & Tuần 1--2 & \textbf{Hoàn thành 100\%} \\
+        \textbf{Giai đoạn 2 (A)} & Thu thập kho BCTN 3 năm phủ 16 lĩnh vực & Tuần 3 & \textbf{Hoàn thành 100\%} \\
+        \textbf{Giai đoạn 2 (B)} & Tiền xử lý đa định dạng: Ảnh (PNG), Text, MD, JSON BBox & Tuần 3 & \textbf{Hoàn thành 100\%} \\
+        \textbf{Giai đoạn 2 (C)} & Fine-tune mô hình Object Detection D-FINE X cho Table/Image & Tuần 4 & \textbf{Hoàn thành trước hạn} \\
+        \textbf{Giai đoạn 2 (D)} & Hoàn thiện Pipeline 1 (Parse-then-retrieve: Docling + bge-m3) & Tuần 4--5 & Đang thực hiện \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\begin{highlightbox}[Đánh giá chung]
+    Dự án đang **bám sát hoàn toàn kế hoạch và đạt một số kết quả vượt tiến độ đề ra** (đặc biệt là việc hoàn tất fine-tune mô hình thị giác D-FINE X ngay trong giai đoạn xử lý dữ liệu).
+\end{highlightbox}
+
+---
+
+\section{Kế hoạch thực hiện trong giai đoạn tiếp theo}
+
+Trong 2 tuần làm việc tiếp theo (Tuần 5 -- Tuần 6), nhóm tập trung vào các nhiệm vụ:
+\begin{enumerate}
+    \item \textbf{Hoàn thiện Pipeline 1 (Parse-then-retrieve):} Tích hợp mô hình D-FINE X với Docling để tự động xuất bảng sang HTML/Markdown; kết hợp Qwen2-VL sinh caption cho các biểu đồ đã được cắt; lập chỉ mục tìm kiếm hỗn hợp (BM25 + Dense \texttt{bge-m3}).
+    \item \textbf{Triển khai Pipeline 2 (Vision-native với ColPali / ColQwen):} Chạy thử nghiệm nhúng đa vector (\textit{multi-vector embeddings}) trên tập ảnh trang \texttt{data/pages/}, lưu trữ vào vector database Qdrant và đo đạc tài nguyên GPU/VRAM.
+    \item \textbf{Khởi tạo bộ Benchmark hỏi đáp tiếng Việt:} Soạn thảo hướng dẫn gán nhãn (\textit{annotation guidelines}) và bắt đầu xây dựng tập câu hỏi phân tầng trên 16 ngành nghề.
+\end{enumerate}
+
+\vspace{0.8cm}
+\begin{flushright}
+    \textit{Hà Nội, ngày 30 tháng 10 năm 2026}\\[0.2cm]
+    \textbf{Sinh viên báo cáo}\\[1.5cm]
+    \textbf{Nguyễn Đức Nhân}
+\end{flushright}
+
+\end{document}
